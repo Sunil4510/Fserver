@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const user = require('../model/userSchema');
 const validator = require('validator');
+const bcrypt = require("bcryptjs");
 
 
 //REGISTRATION PART
@@ -41,5 +42,41 @@ router.post('/Signup',async(req,res)=>{
     }
 
 });
+
+//Login PART
+router.post("/login",async(req,res)=>{
+    try {
+        // let token;
+        const {email,password} = req.body;
+        if(!email || !password){
+               return res.status(400).json({error:"plz fill the data"}); 
+        }
+         
+        const userLogin = await user.findOne({email:email});
+        if(!userLogin)
+        {
+            res.status(400).json({error:"Invalid Credientials"});    
+        }
+        else
+        {
+           const isMatch = await bcrypt.compare(password,userLogin.password);
+            // token = await userLogin.generateAuthToken();
+        //    console.log(token);
+            
+          console.log(isMatch)
+                if(isMatch){
+                    res.status(200).json({message:"Valid Credientials"});
+                } else{
+                    res.status(400).json({error:"Invalid Credientials"});  
+                }
+           
+        }
+
+    } catch (error) {
+        console.log(error);
+    }
+});
+
+
 
 module.exports = router;

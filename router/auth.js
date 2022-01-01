@@ -3,7 +3,7 @@ const router = express.Router();
 const user = require('../model/userSchema');
 const validator = require('validator');
 const bcrypt = require("bcryptjs");
-
+const authenticate = require("../middleware/authenticate")
 
 //REGISTRATION PART
 
@@ -26,6 +26,8 @@ router.post('/Signup',async(req,res)=>{
                 return res.status(422).json({error:"passwords are not matching"});
             }else{
                 const users = new user({name,email,password,cpassword} );
+                const token = await users.generateAuthToken();
+                console.log(token)
                 const userReg = await users.save();
                 if(userReg)
                 {
@@ -46,7 +48,7 @@ router.post('/Signup',async(req,res)=>{
 //Login PART
 router.post("/login",async(req,res)=>{
     try {
-        // let token;
+        
         const {email,password} = req.body;
         if(!email || !password){
                return res.status(400).json({error:"plz fill the data"}); 
@@ -59,12 +61,16 @@ router.post("/login",async(req,res)=>{
         }
         else
         {
-           const isMatch = await bcrypt.compare(password,userLogin.password);
-            // token = await userLogin.generateAuthToken();
-        //    console.log(token);
-            
-          console.log(isMatch)
+            const isMatch = await bcrypt.compare(password,userLogin.password);
+            const token = await userLogin.generateAuthToken();
+            console.log(token);
+           console.log(isMatch)
+
                 if(isMatch){
+                    res.cookie("jwtoken", token, {
+                        expires: new Date(Date.now() + 25892000000),
+                        httpOnly:true
+                    });
                     res.status(200).json({message:"Valid Credientials"});
                 } else{
                     res.status(400).json({error:"Invalid Credientials"});  
@@ -77,6 +83,23 @@ router.post("/login",async(req,res)=>{
     }
 });
 
+router.get("/", authenticate ,(req,res) => {
+    console.log("hello everyone");
+    res.send(req.rootUser)
+})
+router.get("/About", authenticate ,(req,res) => {
+    console.log(`hello`);
+    res.send(req.rootUser)
+});
 
+router.get("/pneumonia", authenticate ,(req,res) => {
+    console.log(`hello`);
+    res.send(req.rootUser)
+});
+
+router.get("/logout",async(req,res)=>{
+    res.clearCookie('jwtoken',{path:'/'});
+    res.status(200).send("user logout");
+})
 
 module.exports = router;
